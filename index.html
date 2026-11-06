@@ -726,7 +726,7 @@ nav.tabs a.on{color:var(--indigo)}
 .pop .acts{display:flex; gap:6px; flex-wrap:wrap}
 .pop .acts a, .pop .acts button{font-size:12px; padding:5px 9px; border-radius:8px; border:1px solid var(--line); background:var(--panel); text-decoration:none; color:var(--ink)}
 .pop .acts a.p{background:var(--indigo); color:var(--indigo-ink); border-color:var(--indigo)}
-.mapbtn{position:absolute; left:10px; bottom:10px; z-index:800; border:1px solid var(--line); background:var(--panel); border-radius:999px; font-size:12px; padding:6px 11px; box-shadow:0 1px 4px rgba(0,0,0,.15)}
+.mapbtn{position:absolute; right:10px; bottom:26px; z-index:800; border:1px solid var(--line); background:var(--panel); border-radius:999px; font-size:12px; padding:6px 11px; box-shadow:0 1px 4px rgba(0,0,0,.15)}
 /* day header */
 .dayhead{display:flex; gap:12px; align-items:flex-start; margin:2px 0 10px}
 .dayhead .num{width:52px; height:52px; border-radius:14px; display:flex; flex-direction:column; align-items:center; justify-content:center; color:#fff; flex:0 0 auto}
@@ -795,7 +795,9 @@ nav.tabs a.on{color:var(--indigo)}
 .wl{font-size:10.5px; letter-spacing:.12em; font-weight:500; color:#9AA0A6; white-space:nowrap}
 .poi{display:flex; align-items:center; gap:4px; white-space:nowrap; font-size:11px; font-weight:500; text-shadow:0 0 2px var(--land),0 0 2px var(--land),0 0 2px var(--land)}
 .poi i{width:9px; height:9px; border-radius:50%; border:1.5px solid #fff; box-shadow:0 0 0 1px rgba(0,0,0,.15); flex:0 0 auto}
-.tiles-on .stn, .tiles-on .wl, .tiles-on .poi{display:none !important}
+.tiles-on .wl{display:none !important}
+.tiles-on .stn,.tiles-on .poi{text-shadow:0 0 2px #fff,0 0 3px #fff,0 0 4px #fff}
+.maptog{border:1px solid var(--line); background:var(--panel); color:var(--ink); border-radius:999px; font:inherit; font-size:12px; padding:6px 11px; box-shadow:0 1px 4px rgba(0,0,0,.15); margin:10px 0 0 10px !important}
 .pf{display:flex; gap:6px; flex-wrap:wrap; margin-bottom:8px}
 .pf select{font:inherit; font-size:13px; padding:7px 8px; border:1px solid var(--line); border-radius:10px; background:var(--panel); color:var(--ink); max-width:48%}
 .pc{background:var(--panel); border:1px solid var(--line); border-radius:12px; padding:9px 11px; margin-bottom:7px}
@@ -946,8 +948,14 @@ function baseMap(el, opts={}){
   if(G.river) vec.push(L.geoJSON(G.river,{style:{pane:'land',color:css('--sea'),weight:5,opacity:1,lineCap:'round'},interactive:false}).addTo(map));
   G.lakes.forEach(([n,pts])=>{ L.polygon(smooth(pts),{pane:'land',fillColor:css('--sea'),fillOpacity:1,color:css('--landline'),weight:.6,interactive:false}).addTo(map); });
   map.createPane('tiles'); map.getPane('tiles').style.zIndex=250;
-  const tl=L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png',{pane:'tiles',subdomains:'abcd',maxZoom:19,attribution:'© OpenStreetMap © CARTO'}).addTo(map);
-  tl.once('tileload',()=>{ map.getContainer().classList.add('tiles-on'); });
+  const tl=L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png',{pane:'tiles',maxZoom:19,attribution:'© OpenStreetMap contributors'}).addTo(map);
+  tl.once('tileload',()=>{
+    let simple=false; try{ simple=localStorage.getItem('jpSimpleMap')==='1'; }catch(e){}
+    const setMode=sm=>{ simple=sm; try{localStorage.setItem('jpSimpleMap',sm?'1':'0')}catch(e){} if(sm){ map.removeLayer(tl); map.getContainer().classList.remove('tiles-on'); } else { tl.addTo(map); map.getContainer().classList.add('tiles-on'); } btn.textContent=sm?'Street map':'Simple map'; };
+    const Ctl=L.Control.extend({onAdd(){ const b=L.DomUtil.create('button','maptog'); L.DomEvent.disableClickPropagation(b); b.onclick=()=>setMode(!simple); return b; }});
+    const ctl=new Ctl({position:'topleft'}); ctl.addTo(map); const btn=ctl.getContainer();
+    setMode(simple);
+  });
   const rails=L.layerGroup().addTo(map);
   G.rails.forEach(r=>{ const pl=L.polyline(r.coords,{pane:'rail',color:r.color,weight:1.8,opacity:.6,interactive:!!opts.railTips}); if(opts.railTips) pl.bindTooltip(r.name,{sticky:true}); pl.addTo(rails); });
   L.marker([35.3606,138.7274],{icon:L.divIcon({className:'',html:'<div class="fuji">▲</div>',iconSize:[22,22],iconAnchor:[11,14]}),interactive:false}).addTo(map);
@@ -987,7 +995,7 @@ function renderToday(){
     return `<div class="slot"><i style="background:${SLOTS[k][1]}"></i>${SLOTS[k][0]} <small>${SLOTS[k][2]}</small></div>`+ss.map(([s,i])=>`<div class="sc ${s.flag==='opt'?'opt':''}" id="c${i}" style="--c:${SLOTS[k][1]}"><div class="bd"><b data-i="${i}">${esc(s.n)}</b><div class="meta">${s.time?`<span class="time">Plan ${esc(s.time)}</span>`:''}${s.hours?`<span class="hrs">${CLOCK}${esc(s.hours)}</span>`:''}${s.flag==='fixed'?'<span class="tag fixed">Fixed</span>':s.flag==='opt'?'<span class="tag opt">Optional</span>':''}</div><div class="nt">${esc(s.note)}</div></div>${icons(s.n,regionOf(s.ll[0],s.ll[1],d.d),mode)}</div>`).join(''); }).join('');
   const list=(arr)=>arr.map(f=>`<div class="lrow"><div class="x">${esc(f.n)}<span>${esc(f.t)}</span></div>${icons(f.n,dh)}</div>`).join('');
   root.innerHTML = `<div class="strip">${D.days.map(x=>`<button class="${x.d===d.d?'on':''}" data-d="${x.d}">${x.dow}<b>${x.d}</b><i style="background:${x.color}"></i></button>`).join('')}</div>
-   <div class="dayhead"><div class="num" style="background:${d.color}"><b>${d.d}</b><span>${d.dow} Nov</span></div><div class="t"><b>${esc(d.theme)}</b><div class="s">${real&&real.d===d.d?'Today · ':''}${!real&&daysTo>0?daysTo+' days to go · ':''}Sleeping at ${esc(d.base)}</div>${d.fixed?`<span class="fx">Fixed: ${esc(d.fixed)}</span>`:''}</div></div>
+   <div class="dayhead"><div class="num" style="background:${d.color}"><b>${d.d}</b><span>${d.dow} Nov</span></div><div class="t"><b>${esc(d.theme)}</b><div class="s">${real&&real.d===d.d?'Today · ':''}${!real&&daysTo>0?daysTo+(daysTo===1?' day':' days')+' to go · ':''}Sleeping at ${esc(d.base)}</div>${d.fixed?`<span class="fx">Fixed: ${esc(d.fixed)}</span>`:''}</div></div>
    ${HAS_L?`<button class="mapbar" id="mtog"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M9 4 3.5 6v14L9 18l6 2 5.5-2V4L15 6 9 4z"/><path d="M9 4v14M15 6v14"/></svg><span><b>Map of the day</b> · ${d.stops.length} places</span>${mapOpen?'Hide ▴':'Show ▾'}</button><div class="mapbox today ${mapOpen?'':'hidden'}"><div class="lmap" id="tmap"></div><button class="mapbtn" id="fitday">Fit day</button></div>`:''}
    ${slotHtml}
    <div class="slotkey">${Object.values(SLOTS).map(v=>`<span><i style="background:${v[1]}"></i>${v[0]}</span>`).join('')}<span>dashed = optional</span></div>
