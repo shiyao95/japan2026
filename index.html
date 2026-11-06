@@ -769,6 +769,8 @@ nav.tabs a.on{color:var(--indigo)}
 .sc{display:flex; gap:10px; align-items:flex-start; background:var(--panel); border:1px solid var(--line); border-left:4px solid var(--c); border-radius:12px; padding:9px 10px 9px 12px; margin-bottom:8px}
 .sc.opt{border-left-style:dashed; background:color-mix(in srgb, var(--panel) 88%, var(--bg))}
 .sc.sel{box-shadow:0 0 0 2px var(--indigo)}
+.sc{cursor:pointer; -webkit-tap-highlight-color:transparent; transition:transform .08s}
+.sc:active{transform:scale(.99)}
 .sc .bd{flex:1; min-width:0}
 .sc .bd b{font-size:15px; line-height:1.3; cursor:pointer}
 .sc .meta{display:flex; gap:6px; flex-wrap:wrap; margin-top:4px}
@@ -1037,7 +1039,7 @@ function renderToday(){
   const build=()=>{ if(tMap) return; tMap=baseMap($('#tmap')); tLayer=dayLayer(tMap,d,{onPick:i=>highlight(i,true)}); fitDay(); $('#fitday').onclick=fitDay; };
   $('#mtog').onclick=()=>{ mapOpen=!mapOpen; try{localStorage.setItem('jpMapOpen',mapOpen?'1':'0')}catch(e){} root.querySelector('.mapbox').classList.toggle('hidden',!mapOpen); $('#mtog').lastChild.textContent=mapOpen?'Hide ▴':'Show ▾'; if(mapOpen){ build(); setTimeout(()=>{ tMap.invalidateSize(); fitDay(); },60); } };
   if(mapOpen) build();
-  root.querySelectorAll('.sc b').forEach(b=>b.onclick=()=>{ const i=+b.dataset.i; if(!mapOpen) $('#mtog').click(); setTimeout(()=>{ highlight(i,false); root.querySelector('.mapbox').scrollIntoView({behavior:'smooth',block:'center'}); },90); });
+  root.querySelectorAll('.sc').forEach(card=>card.onclick=e=>{ if(e.target.closest('.ib')) return; const i=+card.id.slice(1); if(!mapOpen) $('#mtog').click(); setTimeout(()=>{ highlight(i,false); const mb=root.querySelector('.mapbox'); if(mb.scrollIntoView) mb.scrollIntoView({behavior:'smooth',block:'center'}); },mapOpen?60:350); });
   function fitDay(){ if(!tMap) return; const b=L.latLngBounds(tLayer._pts.concat(G.drives[d.d]||[])); tMap.fitBounds(b,{padding:[28,28],maxZoom:15}); }
   function highlight(i,scroll){ root.querySelectorAll('.sc.sel').forEach(c=>c.classList.remove('sel')); const c=$('#c'+i); if(c){ c.classList.add('sel'); if(scroll&&c.scrollIntoView) c.scrollIntoView({behavior:'smooth',block:'center'}); }
     const m=tLayer&&tLayer._markers[i]; if(m && !scroll){ tMap.setView(m.getLatLng(),Math.max(tMap.getZoom(),14)); m.openPopup(); } }
